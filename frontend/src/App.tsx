@@ -12,19 +12,24 @@ import { TermsOfService } from "@/pages/terms"
 import { PrivacyPolicy } from "@/pages/privacy"
 import { PageSkeleton } from "@/components/page-skeleton"
 import { NotificationProvider } from "@/contexts/notification-context"
+import { I18nProvider } from "@/i18n"
 import { useWallet } from "@/hooks/use-wallet"
 import { OnboardingTutorial } from "@/components/onboarding-tutorial"
 import { useOnboarding } from "@/hooks/use-onboarding"
+import { reconcilePendingTransactions } from "@/lib/contracts/client"
 
 // Code-split heavy pages — they load on first visit to that route.
 const Dashboard = lazy(() => import("@/pages/dashboard").then((m) => ({ default: m.Dashboard })))
 const QuestView = lazy(() => import("@/pages/quest").then((m) => ({ default: m.QuestView })))
 const CreateQuest = lazy(() => import("@/pages/create-quest").then((m) => ({ default: m.CreateQuest })))
 const Leaderboard = lazy(() => import("@/pages/leaderboard").then((m) => ({ default: m.Leaderboard })))
+const History = lazy(() => import("@/pages/history").then((m) => ({ default: m.History })))
 const CreatorProfile = lazy(() => import("@/pages/creator").then((m) => ({ default: m.CreatorProfile })))
 const CreatorDashboard = lazy(() => import("@/pages/creator-dashboard").then((m) => ({ default: m.CreatorDashboard })))
+const AnalyticsPage = lazy(() => import("@/pages/analytics").then((m) => ({ default: m.Analytics })))
 import { useToast } from "@/hooks/use-toast"
 import { subscribeToasts } from "@/lib/notifications"
+import { useQuestEventStream } from "@/hooks/use-quest-events"
 
 // ─── Routing ───────────────────────────────────────────────────────────────────
 
@@ -35,11 +40,13 @@ const VALID_PAGES = [
   "create-quest",
   "creator-dashboard",
   "leaderboard",
+  "history",
+  "analytics",
   "terms",
   "privacy",
 ] as const
 type Page = (typeof VALID_PAGES)[number] | "quest" | "creator" | "404"
-const PROTECTED_PAGES: ReadonlySet<Page> = new Set(["dashboard", "profile", "create-quest", "creator-dashboard"])
+const PROTECTED_PAGES: ReadonlySet<Page> = new Set(["profile", "create-quest", "creator-dashboard"])
 
 function SessionGuard({ children, onDenied }: { children: ReactNode; onDenied: () => void }) {
   const { verifySession } = useWallet()
@@ -77,6 +84,8 @@ function pathToPage(pathname: string): {
     return { page: "creator-dashboard", questId: null, creatorAddress: null }
   }
   if (clean === "/leaderboard") return { page: "leaderboard", questId: null, creatorAddress: null }
+  if (clean === "/history") return { page: "history", questId: null, creatorAddress: null }
+  if (clean === "/analytics") return { page: "analytics", questId: null, creatorAddress: null }
   if (clean === "/terms") return { page: "terms", questId: null, creatorAddress: null }
   if (clean === "/privacy") return { page: "privacy", questId: null, creatorAddress: null }
 
@@ -111,6 +120,7 @@ function App() {
   const { toasts, addToast, removeToast } = useToast()
   const onboarding = useOnboarding()
   const { connected } = useWallet()
+  useQuestEventStream(connected)
 
   // Auto-trigger the tutorial the first time a wallet connects (if not yet completed)
   useEffect(() => {
@@ -125,6 +135,12 @@ function App() {
     const onPopState = () => setState(pathToPage(window.location.pathname))
     window.addEventListener("popstate", onPopState)
     return () => window.removeEventListener("popstate", onPopState)
+  }, [])
+
+  // Issue #1478: resolve any wallet transactions that were still awaiting
+  // confirmation when the page was last closed or reloaded.
+  useEffect(() => {
+    void reconcilePendingTransactions()
   }, [])
 
   const handleNavigate = useCallback((p: string) => {
@@ -190,6 +206,18 @@ function App() {
             <Leaderboard />
           </Suspense>
         )
+      case "history":
+        return (
+          <Suspense fallback={<PageSkeleton />}>
+            <History />
+          </Suspense>
+        )
+      case "analytics":
+        return (
+          <Suspense fallback={<PageSkeleton />}>
+            <AnalyticsPage />
+          </Suspense>
+        )
       case "creator":
         return (
           <Suspense fallback={<PageSkeleton />}>
@@ -212,6 +240,7 @@ function App() {
   }
 
   return (
+    <I18nProvider>
     <NotificationProvider>
       <ErrorBoundaryProvider>
         <ErrorBoundary githubRepo="https://github.com/lernza/lernza">
@@ -241,21 +270,16 @@ function App() {
             <OnboardingTutorial
               isOpen={onboarding.isOpen}
               currentStep={onboarding.currentStep}
-              step={onboarding.step}
-              totalSteps={onboarding.totalSteps}
-              isFirstStep={onboarding.isFirstStep}
-              isLastStep={onboarding.isLastStep}
               onNext={onboarding.next}
               onBack={onboarding.back}
-              onSkip={onboarding.skip}
-              onComplete={onboarding.complete}
               onClose={onboarding.close}
-              onJumpTo={onboarding.open}
+              onComplete={onboarding.complete}
             />
           </div>
         </ErrorBoundary>
       </ErrorBoundaryProvider>
     </NotificationProvider>
+    </I18nProvider>
   )
 }
 
