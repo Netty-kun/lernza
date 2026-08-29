@@ -119,6 +119,9 @@ fn quest_state_intact_after_milestone_panic() {
         &String::from_str(&ctx.env, "Desc"),
         &500,
         &false,
+        &None,
+        &None,
+        &None,
     );
 
     // Snapshot A state before the failing call
@@ -161,6 +164,9 @@ fn rewards_pool_intact_after_distribute_without_completion() {
         &String::from_str(&ctx.env, "Desc"),
         &500,
         &false,
+        &None,
+        &None,
+        &None,
     );
 
     let pool_before = ctx.rewards().get_pool_balance(&q_id);
