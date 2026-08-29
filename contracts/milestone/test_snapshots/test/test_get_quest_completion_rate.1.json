@@ -922,6 +922,12 @@
                     },
                     {
                       "key": {
+                        "symbol": "completion_percentage"
+                      },
+                      "val": "void"
+                    },
+                    {
+                      "key": {
                         "symbol": "created_at"
                       },
                       "val": {
