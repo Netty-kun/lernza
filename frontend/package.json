@@ -12,11 +12,11 @@
     "predev": "node scripts/check-env.mjs",
     "check-env": "node scripts/check-env.mjs",
     "check-env:mainnet": "node scripts/check-env.mjs --mode mainnet",
-    "dev": "node api.js && vite",
+    "dev": "node init && vite",
     "validate:assets": "node scripts/validate-public-assets.mjs",
     "prebuild": "node scripts/check-env.mjs && node scripts/validate-public-assets.mjs",
-    "build": "node api.js && tsc -b && vite build",
-    "build:analyze": "vite build --config vite.config.ts",
+    "build": "node init && tsc -b && vite build",
+    "build:analyze": "node init && vite build --config vite.config.ts",
     "lint": "eslint .",
     "preview": "vite preview",
     "generate:bindings": "bash ../scripts/generate-bindings.sh",
@@ -27,7 +27,7 @@
     "test:e2e:ui": "playwright test --ui",
     "prepare": "cd .. && husky",
     "storybook": "storybook dev -p 6006",
-    "build-storybook": "storybook build"
+    "build-storybook": "node init && storybook build"
   },
   "dependencies": {
     "@sentry/react": "^10.68.0",
